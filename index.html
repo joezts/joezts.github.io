@@ -357,9 +357,10 @@
 <li>操作系统：VMware EXSi 5.0.0</li>
 </ul>
 <h2 id="二、OpenStack部署规划"><a href="#二、OpenStack部署规划" class="headerlink" title="二、OpenStack部署规划"></a>二、OpenStack部署规划</h2><h3 id="硬件需求"><a href="#硬件需求" class="headerlink" title="硬件需求"></a>硬件需求</h3><blockquote>
-<p>这是官网给出的硬件需求 </p>
+<p>这是官网给出的硬件需求。<br>这个需求是对于需要实际部署一些服务的场景而言的，尤其对于学生党来说，这个硬件需求很难达到，而且如果只是实验性的搭建一个小型OpenStack环境，硬件需求也不用达到这个标准。</p>
 </blockquote>
-<p><img src="http://oq39n17q4.bkt.clouddn.com/hardwarerequirement.jpg" alt="硬件需求"><br>这个需求是对于需要实际部署一些服务的场景而言的，尤其对于学生党来说，这个硬件需求很难达到，而且如果只是实验性的搭建一个小型OpenStack环境，硬件需求也不用达到这个标准。</p>
+<p><img src="http://oq39n17q4.bkt.clouddn.com/hardwarerequirement.jpg" alt="硬件需求"></p>
+<p>图中实线框是不可缺少的核心，虚线框则是可选组件。本文<code>只部署了实线框所示的Controller节点和Compute节点</code>,对于对象存储节点（Object Storage Node）和块存储节点（Block Storage Node）可根据需要，按照本文搭建核心组件后，按照官网的步骤进行新节点部署。</p>
 <h3 id="网络模型"><a href="#网络模型" class="headerlink" title="网络模型"></a>网络模型</h3><blockquote>
 <p>官网提供了两种网络模型架构：Provider Network &amp; Self-Service Network</p>
 </blockquote>
@@ -393,6 +394,11 @@
 <li><p>图还妹有画好<br><img src="" alt="自己的网络布局"></p>
 </li>
 </ul>
+<h3 id="ML2网桥选择"><a href="#ML2网桥选择" class="headerlink" title="ML2网桥选择"></a>ML2网桥选择</h3><blockquote>
+<p>OpenStack在L版（Liberty）及之前，各个节点中官方搭建文档都默认使用的OVS(OpenvSwitch)，从M版（Mitaka）开始，OpenStack默认使用的是Linux bridge来作为二层转发设备。</p>
+</blockquote>
+<p>笔者因为涉及到后续工作需要基于OVS来实现，所以这里并未按照官方默认的使用Linux bridge，节点中的br-int和br-tun<code>都是使用的OpenvSwitch</code>。所以在后面Networking部分，插件及代理都是安装的openvswitch，ML2配置文件中的mechanism_drivers也设置为openvswitch，还有一些地方也做了相应修改。</p>
+<p><strong>如果你也刚好需要使用OVS作为二层转发设备，或者没有特别需求，可以直接按照本文进行安装配置。否则建议您直接按照官网的Installation Guide进行安装</strong></p>
 <h3 id="网络配置"><a href="#网络配置" class="headerlink" title="网络配置"></a>网络配置</h3><table>
 <thead>
 <tr>
@@ -1092,6 +1098,194 @@
  <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">    +--------------------------------------+--------------------+------------+-------------------+-------+----------------+---------------------------+</div><div class="line">| id                                   | agent_type         | host       | availability_zone | alive | admin_state_up | binary                    |</div><div class="line">+--------------------------------------+--------------------+------------+-------------------+-------+----------------+---------------------------+</div><div class="line">| 075e6e72-4a85-4845-a427-cd3ef45b9803 | Metadata agent     | controller |                   | :-)   | True           | neutron-metadata-agent    |</div><div class="line">| 1805ba7f-7f7d-4e8d-8415-8f63f3f40cc5 | DHCP agent         | controller | nova              | :-)   | True           | neutron-dhcp-agent        |</div><div class="line">| 4b3b5877-37e2-4de3-a5ec-f89786000bb9 | L3 agent           | controller | nova              | :-)   | True           | neutron-l3-agent          |</div><div class="line">| 7e3ec045-336f-43ff-a130-8cfe24951aa6 | Open vSwitch agent | compute1   |                   | :-)   | True           | neutron-openvswitch-agent |</div><div class="line">| bcccd6de-99a0-4a63-9042-8f655efd8ea0 | Open vSwitch agent | controller |                   | :-)   | True           | neutron-openvswitch-agent |</div><div class="line">+--------------------------------------+--------------------+------------+-------------------+-------+----------------+---------------------------+</div></pre></td></tr></table></figure>
 </li>
 </ol>
+<h2 id="九、前端仪表盘-Dashboard-–-Horizon"><a href="#九、前端仪表盘-Dashboard-–-Horizon" class="headerlink" title="九、前端仪表盘 Dashboard – Horizon"></a>九、前端仪表盘 Dashboard – Horizon</h2><blockquote>
+<p>这是一个可选组件，用于提供一个可视化界面，让云管理者和用户可以通过Web接口来操作和管理OpenStack资源与服务。<br>该组件安装和配置在Controller节点。</p>
+</blockquote>
+<h3 id="安装和配置仪表盘"><a href="#安装和配置仪表盘" class="headerlink" title="安装和配置仪表盘"></a>安装和配置仪表盘</h3><ol>
+<li><p>安装<code>dashboard</code></p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># apt install openstack-dashboard</div></pre></td></tr></table></figure>
+</li>
+<li><p>编辑配置文件<code>/etc/openstack-dashboard/local_settings.py</code></p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"># vim /etc/openstack-dashboard/local_settings.py</div><div class="line"></div><div class="line">OPENSTACK_HOST = &quot;controller&quot;</div><div class="line">ALLOWED_HOSTS = [&apos;*&apos;, ]</div><div class="line"></div><div class="line">SESSION_ENGINE = &apos;django.contrib.sessions.backends.cache&apos;</div><div class="line"></div><div class="line">CACHES = &#123;</div><div class="line">    &apos;default&apos;: &#123;</div><div class="line">         &apos;BACKEND&apos;: &apos;django.core.cache.backends.memcached.MemcachedCache&apos;,</div><div class="line">         &apos;LOCATION&apos;: &apos;controller:11211&apos;,</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">OPENSTACK_KEYSTONE_URL = &quot;http://%s:5000/v3&quot; % OPENSTACK_HOST</div><div class="line">OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT = True</div><div class="line">OPENSTACK_API_VERSIONS = &#123;</div><div class="line">    &quot;identity&quot;: 3,</div><div class="line">    &quot;image&quot;: 2,</div><div class="line">    &quot;volume&quot;: 2,</div><div class="line">&#125;</div><div class="line">OPENSTACK_KEYSTONE_DEFAULT_DOMAIN = &quot;default&quot;</div><div class="line">OPENSTACK_KEYSTONE_DEFAULT_ROLE = &quot;user&quot;</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<h3 id="验证操作-2"><a href="#验证操作-2" class="headerlink" title="验证操作"></a>验证操作</h3><ol>
+<li><p>重新载入web server配置</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># service apache2 reload</div></pre></td></tr></table></figure>
+</li>
+<li><p>使用浏览器打开dashboard<br>打开浏览器，在网址栏中输入<code>http://controller/horizon</code>,出现登陆界面后，以admin用户或者demo用户的身份登陆进去即可。</p>
+</li>
+<li><p>Bug解决<br>如果在上面一步中，输入网址后并未出现登陆界面，并出现ERROR，则需要进行下面两步解决。</p>
+</li>
+</ol>
+<ul>
+<li><p>在配置文件<code>/etc/apache2/conf-enabled/openstack-dashboard.conf</code>中添加一行</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"># vim /etc/apache2/conf-enabled/openstack-dashboard.conf</div><div class="line"></div><div class="line">#在WSGIProcessGroup horizon下一行添加</div><div class="line">WSGIApplicationGroup %&#123;GLOBAL&#125;</div></pre></td></tr></table></figure>
+</li>
+<li><p>进入到<code>/usr/share/openstack-dashboard</code>目录,运行manage.py</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"># cd /usr/share/openstack-dashboard</div><div class="line"># python manage.py compress</div></pre></td></tr></table></figure>
+</li>
+</ul>
+<h2 id="十、创建虚拟机实例"><a href="#十、创建虚拟机实例" class="headerlink" title="十、创建虚拟机实例"></a>十、创建虚拟机实例</h2><blockquote>
+<p>上述步骤已经安装部署好了所有的基本组件，OpenStack已经可以开始使用了，下面将介绍一些基本的使用方法，包括创建虚拟网络，路由器，实例，添加floating ip等。</p>
+</blockquote>
+<h3 id="创建provider虚拟网络"><a href="#创建provider虚拟网络" class="headerlink" title="创建provider虚拟网络"></a>创建provider虚拟网络</h3><ol>
+<li><p>以<code>admin</code>身份去使用管理员权限的CLI</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ . admin-openrc</div></pre></td></tr></table></figure>
+</li>
+<li><p>创建provider网络</p>
+<blockquote>
+<p>这里命名为ext-net</p>
+</blockquote>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># neutron net-create ext-net --router:external --provider:physical_network external --provider:network_type flat</div></pre></td></tr></table></figure>
+<p> <strong>参数说明</strong></p>
+<ul>
+<li><code>--router:external</code>：使self-service的router可以使用该网络来连接到外部网络，比如Internet</li>
+<li><code>--provider:physical_network</code>：指定flat虚拟网络连接到哪个flat物理网络上</li>
+<li><code>--provider:network_type</code>：指定provider网络类型，这里将其设置为flat</li>
+</ul>
+<p>–provider:physical_network参数是使用的<code>ml2_conf.ini</code>中指定的参数</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">[ml2_type_flat]</div><div class="line">flat_networks = external</div></pre></td></tr></table></figure>
+</li>
+<li><p>创建provider子网</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"># neutron subnet-create ext-net 192.168.1.0/24 --name ext-subnet \</div><div class="line">  --allocation-pool start=192.168.1.180,end=192.168.1.199 \</div><div class="line">  --disable-dhcp --gateway 192.168.1.1</div></pre></td></tr></table></figure>
+<p> <strong>参数说明</strong></p>
+<ul>
+<li><code>--name</code>：子网名称</li>
+<li><code>--allocation-pool</code>：start和end指定了你想为虚拟机实例分配的ip地址范围，请确保该范围内的地址可用</li>
+<li><code>--disable-dhcp</code>：撤销这个子网的DHCP功能</li>
+<li><code>--gateway</code>：指定这个子网的网关</li>
+</ul>
+</li>
+</ol>
+<h3 id="创建self-service虚拟网络及路由器"><a href="#创建self-service虚拟网络及路由器" class="headerlink" title="创建self-service虚拟网络及路由器"></a>创建self-service虚拟网络及路由器</h3><ol>
+<li><p>以<code>demo</code>身份去获取user身份的CLI使用权</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ . demo-openrc</div></pre></td></tr></table></figure>
+</li>
+<li><p>创建self-service网络</p>
+<blockquote>
+<p>这里命名为demo-net</p>
+</blockquote>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># neutron net-create demo-net</div></pre></td></tr></table></figure>
+</li>
+<li><p>创建self-service子网</p>
+<blockquote>
+<p>我将虚拟内部子网网段定义为90.0.0.0/24，这个可以根据自己情况修改</p>
+</blockquote>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># neutron subnet-create demo-net 90.0.0.0/24 --name demo-subnet --dns-nameserver 61.139.2.69 --gateway 90.0.0.1</div></pre></td></tr></table></figure>
+</li>
+<li><p>创建demo租户的路由器</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># neutron router-create demo-router</div></pre></td></tr></table></figure>
+</li>
+<li><p>在demo-router上加一个接口，将self-service子网（demo-subnet）添加上去</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># neutron router-interface-add demo-router demo-subnet</div></pre></td></tr></table></figure>
+</li>
+<li><p>在demo-router上设置一个provider网络的网关</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># neutron router-gateway-set demo-router ext-net</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<h3 id="验证虚拟网络"><a href="#验证虚拟网络" class="headerlink" title="验证虚拟网络"></a>验证虚拟网络</h3><ol>
+<li><p>以<code>admin</code>身份去使用管理员权限的CLI</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ . admin-openrc</div></pre></td></tr></table></figure>
+</li>
+<li><p>列出名字空间（namespace）</p>
+<blockquote>
+<p>可以看到一个qrouter和一个qdhcp</p>
+</blockquote>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"># ip netns</div><div class="line">qrouter-8afe6ad1-3a63-4036-a374-275b0c44fef2</div><div class="line">qdhcp-20dcee41-145b-4210-83c9-3bcd7b4f732a</div></pre></td></tr></table></figure>
+</li>
+<li><p>列出demo-router上的接口</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"># neutron router-port-list demo-router</div><div class="line"></div><div class="line">+--------------------------------------+------+-------------------+--------------------------------------------------------------------------------------+</div><div class="line">| id                                   | name | mac_address       | fixed_ips                                                                            |</div><div class="line">+--------------------------------------+------+-------------------+--------------------------------------------------------------------------------------+</div><div class="line">| b4fbf9c0-4f49-43e3-8808-6f241c8b7631 |      | fa:16:3e:a7:2b:0d | &#123;&quot;subnet_id&quot;: &quot;cfbf6897-6e94-4b08-8783-2c982ffd0b6e&quot;, &quot;ip_address&quot;: &quot;90.0.0.1&quot;&#125;      |</div><div class="line">| ed881f13-c09d-4dc7-9225-d95f6df47865 |      | fa:16:3e:6a:38:c0 | &#123;&quot;subnet_id&quot;: &quot;572af278-9ac6-4c6f-8771-966e7a22d3ea&quot;, &quot;ip_address&quot;: &quot;192.168.1.181&quot;&#125; |</div><div class="line">+--------------------------------------+------+-------------------+--------------------------------------------------------------------------------------+</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<h3 id="准备创建实例的参数"><a href="#准备创建实例的参数" class="headerlink" title="准备创建实例的参数"></a>准备创建实例的参数</h3><ol>
+<li><p>以<code>admin</code>身份去执行命令</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ . admin-openrc</div></pre></td></tr></table></figure>
+</li>
+<li><p>新建合适的flavor</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># openstack flavor create --id 1 --vcpus 1 --ram 512 --disk 1 m1.tiny</div></pre></td></tr></table></figure>
+<p> 列出可用的flavor</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># openstack flavor list</div></pre></td></tr></table></figure>
+</li>
+<li><p>以<code>demo</code>身份执行后续操作</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ . demo-openrc</div></pre></td></tr></table></figure>
+</li>
+<li><p>创建key pair</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"># ssh-keygen -q -N &quot;&quot;</div><div class="line"># openstack keypair create --public-key ~/.ssh/id_rsa.pub mykey</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<h3 id="增加安全组规则"><a href="#增加安全组规则" class="headerlink" title="增加安全组规则"></a>增加安全组规则</h3><blockquote>
+<p>默认情况下，<code>default</code>安全组将应用于所有的实例，并且阻止所有的远程接入。对于Linux镜像，比如之前上传的Cirros镜像，建议至少需要允许ICMP（ping）和SSH。</p>
+</blockquote>
+<ol>
+<li><p>允许ICMP</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># openstack security group rule create --proto icmp default</div></pre></td></tr></table></figure>
+</li>
+<li><p>允许SSH</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># openstack security group rule create --proto tcp --dst-port 22 default</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<h3 id="在self-service网络上创建虚拟机实例"><a href="#在self-service网络上创建虚拟机实例" class="headerlink" title="在self-service网络上创建虚拟机实例"></a>在self-service网络上创建虚拟机实例</h3><ol>
+<li><p>以<code>demo</code>身份执行后续操作</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ . demo-openrc</div></pre></td></tr></table></figure>
+</li>
+<li><p>列出各项参数的可选值</p>
+</li>
+</ol>
+<ul>
+<li><p>列出flavor</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"># nova flavor-list</div><div class="line"></div><div class="line">+----+------------+-----------+------+-----------+------+-------+-------------+-----------+</div><div class="line">| ID | Name       | Memory_MB | Disk | Ephemeral | Swap | VCPUs | RXTX_Factor | Is_Public |</div><div class="line">+----+------------+-----------+------+-----------+------+-------+-------------+-----------+</div><div class="line">| 1  | m1.tiny    | 512       | 1    | 0         |      | 1     | 1.0         | True      |</div><div class="line">+----+------------+-----------+------+-----------+------+-------+-------------+-----------+</div></pre></td></tr></table></figure>
+</li>
+<li><p>列出image</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"># openstack image  list</div><div class="line">+--------------------------------------+--------+--------+</div><div class="line">| ID                                   | Name   | Status |</div><div class="line">+--------------------------------------+--------+--------+</div><div class="line">| 547e9e90-9863-49dd-bacc-f00d84d6f920 | cirros | active |</div><div class="line">+--------------------------------------+--------+--------+</div></pre></td></tr></table></figure>
+</li>
+<li><p>列出net</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"># neutron net-list</div><div class="line">+--------------------------------------+----------+--------------------------------------------------+</div><div class="line">| id                                   | name     | subnets                                          |</div><div class="line">+--------------------------------------+----------+--------------------------------------------------+</div><div class="line">| 20dcee41-145b-4210-83c9-3bcd7b4f732a | demo-net | cfbf6897-6e94-4b08-8783-2c982ffd0b6e 90.0.0.0/24 |</div><div class="line">| 71e40f62-98cb-438b-94ee-0b7e06d9ee17 | ext-net  | 572af278-9ac6-4c6f-8771-966e7a22d3ea             |</div><div class="line">+--------------------------------------+----------+--------------------------------------------------+</div></pre></td></tr></table></figure>
+</li>
+</ul>
+<ol>
+<li><p>创建实例 </p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># openstack server create --flavor m1.tiny --image cirros --nic net-id=20dcee41-145b-4210-83c9-3bcd7b4f732a --security-group default --key-name mykey demo-ins</div></pre></td></tr></table></figure>
+</li>
+<li><p>查看实例</p>
+<blockquote>
+<p>下面两个命令都可以查看</p>
+</blockquote>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"># openstack server list</div><div class="line"># nova list</div></pre></td></tr></table></figure>
+</li>
+<li><p>通过VNC登陆到实例</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"># openstack console url show demo-ins</div><div class="line"></div><div class="line">+-------+---------------------------------------------------------------------------------+</div><div class="line">| Field | Value                                                                           |</div><div class="line">+-------+---------------------------------------------------------------------------------+</div><div class="line">| type  | novnc                                                                           |</div><div class="line">| url   | http://controller:6080/vnc_auto.html?token=5eeccb47-525c-4918-ac2a-3ad1e9f1f493 |</div><div class="line">+-------+---------------------------------------------------------------------------------+</div></pre></td></tr></table></figure>
+<p> 将结果中的url复制到浏览器中即可查看实例。</p>
+</li>
+<li><p>在namespace中SSH进实例</p>
+<blockquote>
+<p>此时实例只有内部网络的ip，在Controller节点上是无法SSH到实例的。但是我们可以通过Controller节点中的qrouter namespace进入到实例。</p>
+</blockquote>
+</li>
+</ol>
+<ul>
+<li><p>查看namespace</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"># ip netns</div><div class="line">qrouter-8afe6ad1-3a63-4036-a374-275b0c44fef2</div><div class="line">qdhcp-20dcee41-145b-4210-83c9-3bcd7b4f732a</div></pre></td></tr></table></figure>
+</li>
+<li><p>在qrouter中SSH到实例</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># ip netns exec qrouter-8afe6ad1-3a63-4036-a374-275b0c44fef2 ssh cirros@90.0.0.3</div></pre></td></tr></table></figure>
+<p>  其中的ip地址根据自己实例的具体值修改。</p>
+</li>
+</ul>
+<ol>
+<li>创建并绑定floating ip<blockquote>
+<p>此时实例只有内部ip，如果想从外部访问实例，则需要为实例添加一个floating ip</p>
+</blockquote>
+</li>
+</ol>
+<ul>
+<li><p>创建floating ip</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># openstack ip floating create ext-net</div></pre></td></tr></table></figure>
+</li>
+<li><p>将创建的floating ip关联到实例上</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"># openstack ip floating add 192.168.1.xxx demo-ins</div></pre></td></tr></table></figure>
+</li>
+</ul>
 
           
         
